@@ -8,3 +8,4 @@ requests==2.31.0
 googletrans==4.0.2
 python-dotenv==1.0.0
 opencv-python-headless==4.11.0.86
+werkzeug==2.0.3
