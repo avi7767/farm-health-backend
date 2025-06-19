@@ -5,3 +5,9 @@ flask-cors
 tensorflow
 Pillow
 numpy
+requests
+python-dotenv
+opencv-python-headless
+werkzeug==2.0.3  # specific version for compatibility
+googletrans==4.0.2  # for translations
+
