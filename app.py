@@ -18,6 +18,7 @@ import logging
 import sys
 import traceback
 from werkzeug.utils import secure_filename
+import threading
 
 # Configure TensorFlow for better performance
 tf.config.threading.set_intra_op_parallelism_threads(4)
@@ -416,13 +417,20 @@ def predict():
                 disease_name = prediction['disease']
                 confidence = prediction['confidence']
                 
-                # Get treatment advice in the selected language
-                treatment = get_treatment_advice(disease_name, selected_language)
+                # Run the AI treatment advice in a background thread
+                def call_ai_api():
+                    try:
+                        treatment = get_treatment_advice(disease_name, selected_language)
+                        logger.info(f"Background AI treatment for {disease_name} in {selected_language}: {treatment[:100]}...")
+                        # Here you could store the result in a cache, DB, or file if needed
+                    except Exception as e:
+                        logger.error(f"Error in background AI treatment: {str(e)}")
+                threading.Thread(target=call_ai_api).start()
                 
                 return jsonify({
                     'disease': disease_name,
                     'confidence': confidence,
-                    'treatment': treatment
+                    'message': 'AI treatment info is being prepared.'
                 })
             else:
                 return jsonify({'error': 'Failed to get prediction'}), 500
