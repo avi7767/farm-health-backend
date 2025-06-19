@@ -1,5 +1,5 @@
-from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+from flask import Flask, request, jsonify, send_file
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 import numpy as np
@@ -43,7 +43,7 @@ print("Starting application...")
 # Initialize Flask app
 app = Flask(__name__)
 
-# Allow your Netlify frontend
+# Allow only Netlify frontend (recommended for production)
 CORS(app, resources={r"/*": {"origins": "https://farmhealth.netlify.app"}})
 
 # Configure upload folder
