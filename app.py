@@ -19,6 +19,7 @@ import sys
 import traceback
 from werkzeug.utils import secure_filename
 import threading
+import uuid
 
 # Configure TensorFlow for better performance
 tf.config.threading.set_intra_op_parallelism_threads(4)
@@ -390,7 +391,9 @@ def predict_disease(image_path):
         logger.error(f"Error details: {traceback.format_exc()}")
         raise
 
-# Route for disease prediction
+treatment_cache = {}
+treatment_cache_lock = threading.Lock()
+
 @app.route('/api/predict', methods=['POST'])
 def predict():
     """Handle disease prediction requests"""
@@ -416,20 +419,25 @@ def predict():
             if prediction:
                 disease_name = prediction['disease']
                 confidence = prediction['confidence']
+                task_id = str(uuid.uuid4())
                 
                 # Run the AI treatment advice in a background thread
                 def call_ai_api():
                     try:
                         treatment = get_treatment_advice(disease_name, selected_language)
+                        with treatment_cache_lock:
+                            treatment_cache[task_id] = treatment
                         logger.info(f"Background AI treatment for {disease_name} in {selected_language}: {treatment[:100]}...")
-                        # Here you could store the result in a cache, DB, or file if needed
                     except Exception as e:
                         logger.error(f"Error in background AI treatment: {str(e)}")
+                        with treatment_cache_lock:
+                            treatment_cache[task_id] = f"Error: {str(e)}"
                 threading.Thread(target=call_ai_api).start()
                 
                 return jsonify({
                     'disease': disease_name,
                     'confidence': confidence,
+                    'task_id': task_id,
                     'message': 'AI treatment info is being prepared.'
                 })
             else:
@@ -443,6 +451,15 @@ def predict():
     except Exception as e:
         logger.error(f"Error in predict route: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/treatment/<task_id>', methods=['GET'])
+def get_treatment(task_id):
+    with treatment_cache_lock:
+        treatment = treatment_cache.get(task_id)
+    if treatment is None:
+        return jsonify({'status': 'pending', 'treatment': None})
+    else:
+        return jsonify({'status': 'complete', 'treatment': treatment})
 
 # Route for expert advice
 @app.route('/api/expert-advice', methods=['POST', 'OPTIONS'])
