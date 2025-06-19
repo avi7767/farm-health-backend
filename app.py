@@ -419,26 +419,9 @@ def predict():
             if prediction:
                 disease_name = prediction['disease']
                 confidence = prediction['confidence']
-                task_id = str(uuid.uuid4())
-                
-                # Run the AI treatment advice in a background thread
-                def call_ai_api():
-                    try:
-                        treatment = get_treatment_advice(disease_name, selected_language)
-                        with treatment_cache_lock:
-                            treatment_cache[task_id] = treatment
-                        logger.info(f"Background AI treatment for {disease_name} in {selected_language}: {treatment[:100]}...")
-                    except Exception as e:
-                        logger.error(f"Error in background AI treatment: {str(e)}")
-                        with treatment_cache_lock:
-                            treatment_cache[task_id] = f"Error: {str(e)}"
-                threading.Thread(target=call_ai_api).start()
-                
                 return jsonify({
                     'disease': disease_name,
-                    'confidence': confidence,
-                    'task_id': task_id,
-                    'message': 'AI treatment info is being prepared.'
+                    'confidence': confidence
                 })
             else:
                 return jsonify({'error': 'Failed to get prediction'}), 500
@@ -452,14 +435,19 @@ def predict():
         logger.error(f"Error in predict route: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/treatment/<task_id>', methods=['GET'])
-def get_treatment(task_id):
-    with treatment_cache_lock:
-        treatment = treatment_cache.get(task_id)
-    if treatment is None:
-        return jsonify({'status': 'pending', 'treatment': None})
-    else:
-        return jsonify({'status': 'complete', 'treatment': treatment})
+@app.route('/api/treatment-solution', methods=['POST'])
+def treatment_solution():
+    try:
+        data = request.get_json()
+        disease_name = data.get('disease_name')
+        language = data.get('language', 'English')
+        if not disease_name:
+            return jsonify({'error': 'Disease name is required'}), 400
+        treatment = get_treatment_advice(disease_name, language)
+        return jsonify({'treatment': treatment})
+    except Exception as e:
+        logger.error(f"Error in treatment_solution route: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 # Route for expert advice
 @app.route('/api/expert-advice', methods=['POST', 'OPTIONS'])
