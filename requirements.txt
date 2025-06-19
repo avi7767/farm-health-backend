@@ -1,0 +1,7 @@
+# required
+Flask
+gunicorn
+flask-cors
+tensorflow
+Pillow
+numpy
