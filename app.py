@@ -42,7 +42,9 @@ print("Starting application...")
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+
+# Allow your Netlify frontend
+CORS(app, resources={r"/*": {"origins": "https://farmhealth.netlify.app"}})
 
 # Configure upload folder
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
